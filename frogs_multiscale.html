@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Frogs Multiscale - Final Version</title>
+
+  <!-- ArcGIS JS CSS -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/dark/main.css" />
+  <script src="https://js.arcgis.com/4.32/"></script>
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0; margin: 0; height: 100%; width: 100%;
+    }
+    #scaleLabel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    #northArrow {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,0 65,50 50,40 35,50" style="fill:black;"/></svg>') no-repeat center center;
+      background-size: contain;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <div id="scaleLabel">Scale: </div>
+  <div id="northArrow" title="North"></div>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/renderers/UniqueValueRenderer",
+      "esri/widgets/Legend",
+      "esri/widgets/ScaleBar"
+    ], (Map, MapView, FeatureLayer, UniqueValueRenderer, Legend, ScaleBar) => {
+
+      const map = new Map({
+        basemap: "gray-vector"
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [134.5, -25],
+        zoom: 4
+      });
+
+      const label = document.getElementById("scaleLabel");
+
+      view.watch("scale", (scale) => {
+        if (scale > 10000000) label.innerText = "Scale: Country";
+        else if (scale > 1000000) label.innerText = "Scale: State";
+        else if (scale > 50000) label.innerText = "Scale: Urban";
+        else label.innerText = "Scale: Local";
+      });
+
+      // Marker helper: adjusted sizes + outline matches color
+      function marker(size, color, shape) {
+        return {
+          type: "simple-marker",
+          style: shape,
+          size: size,
+          color: color,
+          outline: { color: color, width: 0.5 },
+          angle: 0
+        };
+      }
+
+      function buildRenderer(size, shape) {
+        return new UniqueValueRenderer({
+          field: "scientificName",
+          uniqueValueInfos: [
+            { value: "Crinia signifera", symbol: marker(size, "#1f77b4", shape) },
+            { value: "Limnodynastes peronii", symbol: marker(size, "#ff7f0e", shape) },
+            { value: "Litoria fallax", symbol: marker(size, "#2ca02c", shape) },
+            { value: "Litoria peronii", symbol: marker(size, "#d62728", shape) },
+            { value: "Limnodynastes tasmaniensis", symbol: marker(size, "#9467bd", shape) },
+            { value: "Crinia parinsignifera", symbol: marker(size, "#8c564b", shape) },
+            { value: "Limnodynastes dumerilii", symbol: marker(size, "#e377c2", shape) },
+            { value: "Litoria caerulea", symbol: marker(size, "#7f7f7f", shape) },
+            { value: "Litoria ewingii", symbol: marker(size, "#bcbd22", shape) },
+            { value: "Litoria rubella", symbol: marker(size, "#17becf", shape) },
+            { value: "Litoria verreauxii", symbol: marker(size, "#aec7e8", shape) },
+            { value: "Crinia glauerti", symbol: marker(size, "#ffbb78", shape) },
+            { value: "Adelotus brevis", symbol: marker(size, "#98df8a", shape) },
+            { value: "Litoria gracilenta", symbol: marker(size, "#ff9896", shape) },
+            { value: "Litoria tyleri", symbol: marker(size, "#c5b0d5", shape) },
+            { value: "Litoria latopalmata", symbol: marker(size, "#c49c94", shape) },
+            { value: "Adeloria adelaidensis", symbol: marker(size, "#f7b6d2", shape) },
+            { value: "Crinia georgiana", symbol: marker(size, "#c7c7c7", shape) },
+            { value: "Uperoleia laevigata", symbol: marker(size, "#dbdb8d", shape) },
+            { value: "Uperoleia fusca", symbol: marker(size, "#9edae5", shape) },
+            { value: "Litoria quiritatus", symbol: marker(size, "#393b79", shape) },
+            { value: "Rhinella marina", symbol: marker(size, "#637939", shape) },
+            { value: "Litoria moorei", symbol: marker(size, "#8c6d31", shape) },
+            { value: "Mixophyes fasciolatus", symbol: marker(size, "#843c39", shape) },
+            { value: "Platyplectrum ornatum", symbol: marker(size, "#7b4173", shape) },
+            { value: "Limnodynastes dorsalis", symbol: marker(size, "#3182bd", shape) },
+            { value: "Litoria nasuta", symbol: marker(size, "#e6550d", shape) },
+            { value: "Litoria ridibunda", symbol: marker(size, "#31a354", shape) },
+            { value: "Limnodynastes grayi", symbol: marker(size, "#756bb1", shape) },
+            { value: "Litoria phyllochroa", symbol: marker(size, "#636363", shape) },
+            { value: "Limnodynastes convexiusculus", symbol: marker(size, "#d6616b", shape) }
+          ],
+          defaultSymbol: marker(size, "#d3d3d3", shape),
+          defaultLabel: "Other species"
+        });
+      }
+
+      // ✅ Add popup template
+      const popupTemplate = {
+        title: "{scientificName}",
+        content: `
+          <b>Scientific Name:</b> {scientificName}<br>
+          <b>Frequency:</b> {FREQUENCY}
+        `
+      };
+
+      // ✅ Scale levels with balanced sizes
+      const countryLayer = new FeatureLayer({
+        url: "https://services1.arcgis.com/DSJq1MrJ8wkZdxYE/arcgis/rest/services/Frogs_view1/FeatureServer",
+        renderer: buildRenderer(2, "square"), // Square, larger to match visual
+        minScale: 0,
+        maxScale: 5000000,
+        popupTemplate: popupTemplate,
+        title: "Country Frogs"
+      });
+
+      const stateLayer = new FeatureLayer({
+        url: "https://services1.arcgis.com/DSJq1MrJ8wkZdxYE/arcgis/rest/services/Frogs_view1/FeatureServer",
+        renderer: buildRenderer(4, "circle"), // Circle
+        minScale: 5000000,
+        maxScale: 3000000,
+        popupTemplate: popupTemplate,
+        title: "State Frogs"
+      });
+
+      const urbanLayer = new FeatureLayer({
+        url: "https://services1.arcgis.com/DSJq1MrJ8wkZdxYE/arcgis/rest/services/Frogs_view1/FeatureServer",
+        renderer: buildRenderer(5, "cross"), // Cross, slightly larger
+        minScale: 3000000,
+        maxScale: 50000,
+        popupTemplate: popupTemplate,
+        title: "Urban Frogs"
+      });
+
+      const localLayer = new FeatureLayer({
+        url: "https://services1.arcgis.com/DSJq1MrJ8wkZdxYE/arcgis/rest/services/Frogs_view1/FeatureServer",
+        renderer: buildRenderer(7, "diamond"), // Diamond
+        minScale: 50000,
+        maxScale: 0,
+        popupTemplate: popupTemplate,
+        title: "Local Frogs"
+      });
+
+      map.addMany([countryLayer, stateLayer, urbanLayer, localLayer]);
+
+      // ✅ Add Legend
+      const legend = new Legend({ view: view });
+      view.ui.add(legend, "bottom-left");
+
+      // ✅ Add ScaleBar
+      const scaleBar = new ScaleBar({ view: view, unit: "metric" });
+      view.ui.add(scaleBar, "bottom-right");
+
+    });
+  </script>
+</body>
+</html>
